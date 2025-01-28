@@ -1,0 +1,78 @@
+{% extends 'pharmacy/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Medicine Inventory Details</h3>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Code:</div>
+                        <div class="col-md-8">{{ inventory.code }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Item Description:</div>
+                        <div class="col-md-8">{{ inventory.item_description }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Unit:</div>
+                        <div class="col-md-8">{{ inventory.unit }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Received From:</div>
+                        <div class="col-md-8">{{ inventory.received_from }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Quantity:</div>
+                        <div class="col-md-8">{{ inventory.quantity }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Batch Number:</div>
+                        <div class="col-md-8">{{ inventory.batch_number }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Expiry Date:</div>
+                        <div class="col-md-8">{{ inventory.expiry_date }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Receiving Date:</div>
+                        <div class="col-md-8">{{ inventory.receiving_date }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Balance:</div>
+                        <div class="col-md-8">{{ inventory.balance }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Unit Price:</div>
+                        <div class="col-md-8">${{ inventory.unit_price }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Selling Price:</div>
+                        <div class="col-md-8">${{ inventory.selling_price }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Total Value:</div>
+                        <div class="col-md-8">${{ inventory.total_value }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Status:</div>
+                        <div class="col-md-8">
+                            {% if inventory.is_expired %}
+                            <span class="badge bg-danger">Expired</span>
+                            {% else %}
+                            <span class="badge bg-success">Valid</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <a href="{% url 'medicine_inventory_list' %}" class="btn btn-secondary">Back to List</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

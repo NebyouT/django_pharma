@@ -1,0 +1,98 @@
+{% extends 'pharmacy/base.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h2>Dashboard</h2>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <!-- Inventory Summary -->
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Total Medicines</h5>
+                <h2 class="card-text">{{ total_medicines }}</h2>
+                <a href="{% url 'medicine_list' %}" class="btn btn-primary">View All</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <h5 class="card-title">Low Stock</h5>
+                <h2 class="card-text">{{ low_stock_count }}</h2>
+                <a href="{% url 'low_stock_medicines' %}" class="btn btn-light">View</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-danger text-white">
+            <div class="card-body">
+                <h5 class="card-title">Expired</h5>
+                <h2 class="card-text">{{ expired_count }}</h2>
+                <a href="{% url 'expired_medicines' %}" class="btn btn-light">View</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <h5 class="card-title">Expiring Soon</h5>
+                <h2 class="card-text">{{ expiring_soon }}</h2>
+                <a href="{% url 'expiring_soon_medicines' %}" class="btn btn-light">View</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <!-- Sales Summary -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Today's Sales</h5>
+                <p class="card-text">Amount: ${{ daily_sales.total|default:"0" }}</p>
+                <p class="card-text">Transactions: {{ daily_sales.count|default:"0" }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Weekly Sales</h5>
+                <p class="card-text">Amount: ${{ weekly_sales.total|default:"0" }}</p>
+                <p class="card-text">Transactions: {{ weekly_sales.count|default:"0" }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Monthly Sales</h5>
+                <p class="card-text">Amount: ${{ monthly_sales.total|default:"0" }}</p>
+                <p class="card-text">Transactions: {{ monthly_sales.count|default:"0" }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Quick Actions</h5>
+                <div class="btn-group">
+                    <a href="{% url 'add_sale' %}" class="btn btn-primary">New Sale</a>
+                    <a href="{% url 'add_medicine' %}" class="btn btn-success">Add Medicine</a>
+                    {% if user.user_type == 'admin' %}
+                    <a href="{% url 'register_user' %}" class="btn btn-info">Add User</a>
+                    <a href="{% url 'sales_report' %}" class="btn btn-warning">Sales Report</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

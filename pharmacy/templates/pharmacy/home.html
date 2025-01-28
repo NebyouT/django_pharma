@@ -1,0 +1,31 @@
+{% extends 'pharmacy/base.html' %}
+
+{% block content %}
+<div class="jumbotron">
+    <h1 class="display-4">Welcome to Pharmacy Management System</h1>
+    <p class="lead">Manage your pharmacy inventory and sales efficiently.</p>
+    <hr class="my-4">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Medicines</h5>
+                    <p class="card-text">View and manage your medicine inventory.</p>
+                    <a href="{% url 'medicine_list' %}" class="btn btn-primary">View Medicines</a>
+                    <a href="{% url 'add_medicine' %}" class="btn btn-success">Add Medicine</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Sales</h5>
+                    <p class="card-text">Record and view sales transactions.</p>
+                    <a href="{% url 'sale_list' %}" class="btn btn-primary">View Sales</a>
+                    <a href="{% url 'add_sale' %}" class="btn btn-success">New Sale</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

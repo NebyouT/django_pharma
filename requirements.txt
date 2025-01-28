@@ -1,0 +1,5 @@
+django==5.0.1
+pillow==10.2.0
+django-crispy-forms==2.1
+pyinstaller==6.3.0
+python-decouple==3.8
