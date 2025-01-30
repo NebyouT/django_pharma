@@ -1,92 +1,94 @@
 {% extends 'pharmacy/base.html' %}
 
 {% block content %}
-<div class="row mb-3">
-    <div class="col">
-        <h2>Sales Report</h2>
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>Sales Report</h2>
+        </div>
     </div>
-</div>
 
-<div class="card mb-4">
-    <div class="card-body">
-        <form method="get" class="row g-3">
-            <div class="col-auto">
-                <label for="start_date" class="form-label">Start Date</label>
-                <input type="date" class="form-control" id="start_date" name="start_date" 
-                       value="{{ start_date|date:'Y-m-d' }}">
-            </div>
-            <div class="col-auto">
-                <label for="end_date" class="form-label">End Date</label>
-                <input type="date" class="form-control" id="end_date" name="end_date" 
-                       value="{{ end_date|date:'Y-m-d' }}">
-            </div>
-            <div class="col-auto align-self-end">
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-search"></i> Generate Report
-                </button>
-            </div>
-        </form>
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-auto">
+                    <label for="start_date" class="form-label">Start Date</label>
+                    <input type="date" class="form-control" id="start_date" name="start_date" 
+                           value="{{ start_date|date:'Y-m-d' }}">
+                </div>
+                <div class="col-auto">
+                    <label for="end_date" class="form-label">End Date</label>
+                    <input type="date" class="form-control" id="end_date" name="end_date" 
+                           value="{{ end_date|date:'Y-m-d' }}">
+                </div>
+                <div class="col-auto align-self-end">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i> Generate Report
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
-</div>
 
-<div class="card">
-    <div class="card-body">
-        <div class="row mb-3">
-            <div class="col-md-4">
-                <div class="card bg-primary text-white">
-                    <div class="card-body">
-                        <h5 class="card-title">Total Sales Amount</h5>
-                        <h3>${{ total_sales.total_amount|default:"0" }}</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card bg-success text-white">
-                    <div class="card-body">
-                        <h5 class="card-title">Total Items Sold</h5>
-                        <h3>{{ total_sales.total_quantity|default:"0" }}</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card bg-info text-white">
-                    <div class="card-body">
-                        <h5 class="card-title">Number of Transactions</h5>
-                        <h3>{{ sales|length }}</h3>
-                    </div>
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Sales Amount</h5>
+                    <h3>ETB {{ total_amount|floatformat:2 }}</h3>
                 </div>
             </div>
         </div>
+        <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Items Sold</h5>
+                    <h3>{{ total_quantity }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Number of Transactions</h5>
+                    <h3>{{ sales|length }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        <div class="table-responsive">
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Customer</th>
-                        <th>Medicine</th>
-                        <th>Quantity</th>
-                        <th>Amount</th>
-                        <th>Seller</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for sale in sales %}
-                    <tr>
-                        <td>{{ sale.sale_date|date:"Y-m-d H:i" }}</td>
-                        <td>{{ sale.customer_name }}</td>
-                        <td>{{ sale.medicine.name }}</td>
-                        <td>{{ sale.quantity }}</td>
-                        <td>${{ sale.total_amount }}</td>
-                        <td>{{ sale.seller.get_full_name }}</td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="6" class="text-center">No sales found for the selected period.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Medicine</th>
+                            <th>Quantity</th>
+                            <th>Unit Price</th>
+                            <th>Total Price</th>
+                            <th>Created By</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sale in sales %}
+                        <tr>
+                            <td>{{ sale.created_at|date:"Y-m-d H:i" }}</td>
+                            <td>{{ sale.medicine.item_description }}</td>
+                            <td>{{ sale.quantity }}</td>
+                            <td>ETB {{ sale.medicine.selling_price|floatformat:2 }}</td>
+                            <td>ETB {{ sale.total_price|floatformat:2 }}</td>
+                            <td>{{ sale.created_by.get_full_name }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center">No sales found for the selected period.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>

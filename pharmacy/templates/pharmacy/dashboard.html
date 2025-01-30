@@ -1,98 +1,108 @@
 {% extends 'pharmacy/base.html' %}
 
 {% block content %}
-<div class="row mb-4">
-    <div class="col">
-        <h2>Dashboard</h2>
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>Dashboard</h2>
+        </div>
     </div>
-</div>
 
-<div class="row mb-4">
-    <!-- Inventory Summary -->
-    <div class="col-md-3">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Total Medicines</h5>
-                <h2 class="card-text">{{ total_medicines }}</h2>
-                <a href="{% url 'medicine_list' %}" class="btn btn-primary">View All</a>
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Medicines</h5>
+                    <h3 class="card-text">{{ total_medicines }}</h3>
+                </div>
             </div>
         </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card bg-warning text-white">
-            <div class="card-body">
-                <h5 class="card-title">Low Stock</h5>
-                <h2 class="card-text">{{ low_stock_count }}</h2>
-                <a href="{% url 'low_stock_medicines' %}" class="btn btn-light">View</a>
+        <div class="col-md-4">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Low Stock Items</h5>
+                    <h3 class="card-text">{{ low_stock }}</h3>
+                </div>
             </div>
         </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card bg-danger text-white">
-            <div class="card-body">
-                <h5 class="card-title">Expired</h5>
-                <h2 class="card-text">{{ expired_count }}</h2>
-                <a href="{% url 'expired_medicines' %}" class="btn btn-light">View</a>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card bg-info text-white">
-            <div class="card-body">
-                <h5 class="card-title">Expiring Soon</h5>
-                <h2 class="card-text">{{ expiring_soon }}</h2>
-                <a href="{% url 'expiring_soon_medicines' %}" class="btn btn-light">View</a>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row mb-4">
-    <!-- Sales Summary -->
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Today's Sales</h5>
-                <p class="card-text">Amount: ${{ daily_sales.total|default:"0" }}</p>
-                <p class="card-text">Transactions: {{ daily_sales.count|default:"0" }}</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Weekly Sales</h5>
-                <p class="card-text">Amount: ${{ weekly_sales.total|default:"0" }}</p>
-                <p class="card-text">Transactions: {{ weekly_sales.count|default:"0" }}</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Monthly Sales</h5>
-                <p class="card-text">Amount: ${{ monthly_sales.total|default:"0" }}</p>
-                <p class="card-text">Transactions: {{ monthly_sales.count|default:"0" }}</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row mb-4">
-    <div class="col">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Quick Actions</h5>
-                <div class="btn-group">
-                    <a href="{% url 'add_sale' %}" class="btn btn-primary">New Sale</a>
-                    <a href="{% url 'add_medicine' %}" class="btn btn-success">Add Medicine</a>
-                    {% if user.user_type == 'admin' %}
-                    <a href="{% url 'register_user' %}" class="btn btn-info">Add User</a>
-                    <a href="{% url 'sales_report' %}" class="btn btn-warning">Sales Report</a>
-                    {% endif %}
+        <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Sales</h5>
+                    <h3 class="card-text">{{ total_sales }}</h3>
                 </div>
             </div>
         </div>
     </div>
+
+    {% if user.role.name == 'admin' or user.role.name == 'inventory' %}
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <a href="{% url 'add_medicine' %}" class="btn btn-primary btn-block">
+                                <i class="fas fa-plus-circle"></i> Add Medicine
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'add_medicine_inventory' %}" class="btn btn-success btn-block">
+                                <i class="fas fa-boxes"></i> Add Inventory
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'low_stock_medicines' %}" class="btn btn-warning btn-block">
+                                <i class="fas fa-exclamation-triangle"></i> View Low Stock
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'expired_medicines' %}" class="btn btn-danger btn-block">
+                                <i class="fas fa-calendar-times"></i> View Expired
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if user.role.name == 'admin' or user.role.name == 'cashier' %}
+    <!-- Sales Actions -->
+    <div class="row">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Sales Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <a href="{% url 'add_sale' %}" class="btn btn-primary btn-block">
+                                <i class="fas fa-cart-plus"></i> New Sale
+                            </a>
+                        </div>
+                        <div class="col-md-4">
+                            <a href="{% url 'sale_list' %}" class="btn btn-info btn-block">
+                                <i class="fas fa-list"></i> View Sales
+                            </a>
+                        </div>
+                        <div class="col-md-4">
+                            <a href="{% url 'sales_report' %}" class="btn btn-success btn-block">
+                                <i class="fas fa-chart-line"></i> Sales Report
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}
