@@ -7,9 +7,16 @@ class CustomAuthenticationForm(AuthenticationForm):
     password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Password'}))
 
 class UserRegistrationForm(UserCreationForm):
+    id_number = forms.CharField(max_length=50, required=True, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    date_of_birth = forms.DateField(required=True, widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}))
+    id_issue_date = forms.DateField(required=True, widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}))
+    id_expiry_date = forms.DateField(required=True, widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}))
+
     class Meta:
         model = PharmacyUser
-        fields = ['username', 'first_name', 'last_name', 'email', 'phone_number', 'address', 'user_type', 'password1', 'password2']
+        fields = ['username', 'first_name', 'last_name', 'email', 'phone_number', 'address', 
+                 'id_number', 'date_of_birth', 'id_issue_date', 'id_expiry_date',
+                 'user_type', 'password1', 'password2']
         widgets = {
             'user_type': forms.Select(attrs={'class': 'form-control'}),
             'phone_number': forms.TextInput(attrs={'class': 'form-control'}),
@@ -43,8 +50,19 @@ class SaleForm(forms.ModelForm):
         widgets = {
             'customer_name': forms.TextInput(attrs={'class': 'form-control'}),
             'medicine': forms.Select(attrs={'class': 'form-control'}),
-            'quantity': forms.NumberInput(attrs={'class': 'form-control'}),
+            'quantity': forms.NumberInput(attrs={'class': 'form-control', 'min': '1'}),
         }
+
+    def clean_quantity(self):
+        quantity = self.cleaned_data.get('quantity')
+        medicine = self.cleaned_data.get('medicine')
+        
+        if quantity and medicine:
+            if quantity <= 0:
+                raise forms.ValidationError("Quantity must be greater than zero.")
+            if quantity > medicine.balance:
+                raise forms.ValidationError(f"Insufficient stock. Only {medicine.balance} units available.")
+        return quantity
 
 class MedicineInventoryForm(forms.ModelForm):
     class Meta:

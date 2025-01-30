@@ -12,46 +12,53 @@
     </div>
 </div>
 
-<div class="card">
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>Username</th>
-                        <th>Full Name</th>
-                        <th>Email</th>
-                        <th>Role</th>
-                        <th>Phone</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for user in users %}
-                    <tr>
-                        <td>{{ user.username }}</td>
-                        <td>{{ user.get_full_name }}</td>
-                        <td>{{ user.email }}</td>
-                        <td>
-                            <span class="badge {% if user.user_type == 'admin' %}bg-primary{% else %}bg-info{% endif %}">
-                                {{ user.get_user_type_display }}
-                            </span>
-                        </td>
-                        <td>{{ user.phone_number }}</td>
-                        <td>
-                            <span class="badge {% if user.is_active %}bg-success{% else %}bg-danger{% endif %}">
-                                {% if user.is_active %}Active{% else %}Inactive{% endif %}
-                            </span>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="6" class="text-center">No users found.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
+<div class="table-responsive">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Full Name</th>
+                <th>User Type</th>
+                <th>ID Number</th>
+                <th>Phone</th>
+                <th>Email</th>
+                <th>ID Expiry Date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>{{ user.username }}</td>
+                <td>{{ user.get_full_name }}</td>
+                <td>{{ user.get_user_type_display }}</td>
+                <td>{{ user.id_number }}</td>
+                <td>{{ user.phone_number }}</td>
+                <td>{{ user.email }}</td>
+                <td>{{ user.id_expiry_date|date:"Y-m-d" }}</td>
+                <td>
+                    <div class="btn-group">
+                        <a href="{% url 'edit_user' user.id %}" class="btn btn-sm btn-warning">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        {% if user.is_active %}
+                        <a href="{% url 'deactivate_user' user.id %}" class="btn btn-sm btn-danger">
+                            <i class="fas fa-user-times"></i>
+                        </a>
+                        {% else %}
+                        <a href="{% url 'activate_user' user.id %}" class="btn btn-sm btn-success">
+                            <i class="fas fa-user-check"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" class="text-center">No users found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
 {% endblock %}

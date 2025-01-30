@@ -7,13 +7,21 @@ class PharmacyUser(AbstractUser):
     USER_TYPES = (
         ('admin', 'Admin'),
         ('pharmacist', 'Pharmacist'),
+        ('sales', 'Sales Personnel'),
     )
     user_type = models.CharField(max_length=20, choices=USER_TYPES, default='pharmacist')
     phone_number = models.CharField(max_length=20, blank=True)
     address = models.TextField(blank=True)
+    id_number = models.CharField(max_length=50, blank=True)
+    date_of_birth = models.DateField(null=True, blank=True)
+    id_issue_date = models.DateField(null=True, blank=True)
+    id_expiry_date = models.DateField(null=True, blank=True)
 
     def is_admin(self):
         return self.user_type == 'admin'
+
+    def is_sales(self):
+        return self.user_type == 'sales'
 
 class Category(models.Model):
     name = models.CharField(max_length=100)
@@ -26,17 +34,17 @@ class Category(models.Model):
         verbose_name_plural = 'Categories'
 
 class Medicine(models.Model):
-    code = models.CharField(max_length=50, unique=True)
+    code = models.CharField(max_length=50, unique=True, default='')
     item_description = models.TextField()
-    unit = models.CharField(max_length=50)
+    unit = models.CharField(max_length=50, default='')
     received_from = models.CharField(max_length=200)
-    quantity = models.IntegerField()
-    batch_number = models.CharField(max_length=100)
+    quantity = models.IntegerField(default=0)
+    batch_number = models.CharField(max_length=100, default='')
     expiry_date = models.DateField()
-    receiving_date = models.DateField()
-    balance = models.IntegerField()
-    unit_price = models.DecimalField(max_digits=10, decimal_places=2)
-    selling_price = models.DecimalField(max_digits=10, decimal_places=2)
+    receiving_date = models.DateField(default=timezone.now)
+    balance = models.IntegerField(default=0)
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    selling_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
