@@ -3,9 +3,10 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import F, Sum
 from django.http import HttpResponseForbidden
+from django.utils import timezone
+from datetime import datetime, timedelta
 from django.contrib.auth import logout
 from django.views.decorators.http import require_http_methods
-from datetime import timedelta
 from .models import Medicine, Sale, MedicineInventory, Role, PharmacyUser
 from .forms import (
     MedicineForm, SaleForm, UserRegistrationForm, CustomAuthenticationForm,
