@@ -5,7 +5,7 @@
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-12">
-            <h1 class="h3 mb-4 text-gray-800">Dashboard</h1>
+            <h1 class="h3 mb-4 text-gray-800">Pharmacist Dashboard</h1>
         </div>
     </div>
 
@@ -60,7 +60,6 @@
     </div>
 
     <div class="row">
-        {% if user.role.name == 'admin' or user.role.name == 'pharmacist' %}
         <div class="col-lg-6">
             <div class="card shadow mb-4">
                 <div class="card-header py-3">
@@ -87,12 +86,11 @@
                 </div>
             </div>
         </div>
-        {% endif %}
 
         <div class="col-lg-6">
             <div class="card shadow mb-4">
                 <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Recent Sales</h6>
+                    <h6 class="m-0 font-weight-bold text-primary">Medicine Status</h6>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -101,21 +99,27 @@
                                 <tr>
                                     <th>Medicine</th>
                                     <th>Quantity</th>
-                                    <th>Total Price</th>
-                                    <th>Date</th>
+                                    <th>Status</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for sale in recent_sales %}
+                                {% for medicine in recent_medicines %}
                                 <tr>
-                                    <td>{{ sale.medicine.item_description }}</td>
-                                    <td>{{ sale.quantity }}</td>
-                                    <td>{{ sale.total_price }}</td>
-                                    <td>{{ sale.created_at|date:"Y-m-d H:i" }}</td>
+                                    <td>{{ medicine.item_description }}</td>
+                                    <td>{{ medicine.quantity }}</td>
+                                    <td>
+                                        {% if medicine.is_expired %}
+                                            <span class="badge badge-danger">Expired</span>
+                                        {% elif medicine.is_low_stock %}
+                                            <span class="badge badge-warning">Low Stock</span>
+                                        {% else %}
+                                            <span class="badge badge-success">In Stock</span>
+                                        {% endif %}
+                                    </td>
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="4" class="text-center">No recent sales</td>
+                                    <td colspan="3" class="text-center">No medicines found</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>

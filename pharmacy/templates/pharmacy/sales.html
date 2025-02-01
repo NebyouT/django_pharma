@@ -1,0 +1,286 @@
+{% extends 'pharmacy/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Record Sale</h2>
+    
+    <!-- Search Form -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label for="search">Search Medicine</label>
+                        <input type="text" id="search" class="form-control" placeholder="Enter medicine code or name">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label for="category">Category</label>
+                        <select id="category" class="form-control">
+                            <option value="">All Categories</option>
+                            <option value="STP">STP</option>
+                            <option value="BOT">BOT</option>
+                            <option value="TUB">TUB</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label for="complete_only">Data Completeness</label>
+                        <select id="complete_only" class="form-control">
+                            <option value="true">Complete Data Only</option>
+                            <option value="false">All Data</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="btn btn-primary mt-4" onclick="searchMedicine()">Search</button>
+                </div>
+            </div>
+
+            <!-- Search Results -->
+            <div class="mt-4" id="searchResults" style="display: none;">
+                <h5>Search Results</h5>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Code</th>
+                                <th>Description</th>
+                                <th>Unit</th>
+                                <th>Balance</th>
+                                <th>Price</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="searchResultsBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Medicine Details Form -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">Sale Details</h4>
+        </div>
+        <div class="card-body">
+            <form id="saleForm" onsubmit="recordSale(event)">
+                <input type="hidden" id="medicine_id">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Medicine Code</label>
+                            <input type="text" id="code" class="form-control" readonly>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Description</label>
+                            <input type="text" id="description" class="form-control" readonly>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Available Stock</label>
+                            <input type="text" id="balance" class="form-control" readonly>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Unit Price</label>
+                            <input type="text" id="selling_price" class="form-control" readonly>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Expiry Date</label>
+                            <input type="text" id="expiry_date" class="form-control" readonly>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="quantity">Quantity to Sell</label>
+                            <input type="number" id="quantity" class="form-control" required min="1" onchange="calculateTotal()">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="payment_method">Payment Method</label>
+                            <select id="payment_method" class="form-control" required>
+                                <option value="cash">Cash</option>
+                                <option value="bank">Bank Transfer</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Total Amount</label>
+                            <input type="text" id="total_amount" class="form-control" readonly>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <button type="submit" class="btn btn-success mt-4" id="recordSaleBtn" disabled>Record Sale</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let debounceTimer;
+
+function debounce(func, delay) {
+    return function() {
+        const context = this;
+        const args = arguments;
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => func.apply(context, args), delay);
+    }
+}
+
+const searchInput = document.getElementById('search');
+searchInput.addEventListener('input', debounce(searchMedicine, 300));
+
+function searchMedicine() {
+    const query = document.getElementById('search').value;
+    const category = document.getElementById('category').value;
+    const completeOnly = document.getElementById('complete_only').value;
+    
+    fetch(`/search-medicine/?query=${encodeURIComponent(query)}&category=${encodeURIComponent(category)}&complete_only=${completeOnly}`)
+        .then(response => response.json())
+        .then(data => {
+            const resultsBody = document.getElementById('searchResultsBody');
+            resultsBody.innerHTML = '';
+            
+            if (data.results.length > 0) {
+                data.results.forEach(medicine => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${medicine.code || 'N/A'}</td>
+                        <td>${medicine.description || 'N/A'}</td>
+                        <td>${medicine.unit || 'N/A'}</td>
+                        <td>${medicine.balance || 0}</td>
+                        <td>${medicine.selling_price || 0}</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary" onclick="selectMedicine(${JSON.stringify(medicine).replace(/"/g, '&quot;')})">
+                                Select
+                            </button>
+                        </td>
+                    `;
+                    resultsBody.appendChild(row);
+                });
+                document.getElementById('searchResults').style.display = 'block';
+            } else {
+                resultsBody.innerHTML = '<tr><td colspan="6" class="text-center">No medicines found</td></tr>';
+                document.getElementById('searchResults').style.display = 'block';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error searching for medicine');
+        });
+}
+
+function selectMedicine(medicine) {
+    document.getElementById('medicine_id').value = medicine.id;
+    document.getElementById('code').value = medicine.code;
+    document.getElementById('description').value = medicine.description;
+    document.getElementById('balance').value = medicine.balance;
+    document.getElementById('selling_price').value = medicine.selling_price;
+    document.getElementById('expiry_date').value = medicine.expiry_date || 'N/A';
+    document.getElementById('recordSaleBtn').disabled = false;
+    document.getElementById('quantity').value = '';
+    document.getElementById('total_amount').value = '';
+    document.getElementById('searchResults').style.display = 'none';
+}
+
+function calculateTotal() {
+    const quantity = document.getElementById('quantity').value;
+    const price = document.getElementById('selling_price').value;
+    const balance = document.getElementById('balance').value;
+    
+    if (quantity && price) {
+        if (parseInt(quantity) > parseInt(balance)) {
+            alert(`Cannot sell more than available stock (${balance} units)`);
+            document.getElementById('quantity').value = balance;
+            document.getElementById('total_amount').value = (parseFloat(price) * parseInt(balance)).toFixed(2);
+        } else {
+            document.getElementById('total_amount').value = (parseFloat(price) * parseInt(quantity)).toFixed(2);
+        }
+    }
+}
+
+function recordSale(event) {
+    event.preventDefault();
+    
+    const formData = new FormData();
+    formData.append('medicine_id', document.getElementById('medicine_id').value);
+    formData.append('quantity', document.getElementById('quantity').value);
+    formData.append('payment_method', document.getElementById('payment_method').value);
+    
+    fetch('/record-sale/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Sale recorded successfully!');
+            clearForm();
+        } else {
+            alert(data.message || 'Error recording sale');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error recording sale');
+    });
+}
+
+function clearForm() {
+    document.getElementById('medicine_id').value = '';
+    document.getElementById('code').value = '';
+    document.getElementById('description').value = '';
+    document.getElementById('balance').value = '';
+    document.getElementById('selling_price').value = '';
+    document.getElementById('expiry_date').value = '';
+    document.getElementById('quantity').value = '';
+    document.getElementById('total_amount').value = '';
+    document.getElementById('search').value = '';
+    document.getElementById('recordSaleBtn').disabled = true;
+    document.getElementById('searchResults').style.display = 'none';
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

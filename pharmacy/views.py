@@ -1,16 +1,16 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.db.models import F, Sum
-from django.http import HttpResponseForbidden
+from django.db.models import F, Sum, Q
+from django.http import HttpResponseForbidden, JsonResponse
 from django.utils import timezone
 from datetime import datetime, timedelta
-from django.contrib.auth import logout
+from django.contrib.auth import logout, login
 from django.views.decorators.http import require_http_methods
-from .models import Medicine, Sale, MedicineInventory, Role, PharmacyUser
+from .models import Medicine, Sale, Role, PharmacyUser
 from .forms import (
     MedicineForm, SaleForm, UserRegistrationForm, CustomAuthenticationForm,
-    MedicineInventoryForm, UserUpdateForm, RoleForm
+    UserUpdateForm, RoleForm
 )
 
 def is_admin(user):
@@ -22,6 +22,7 @@ def login_view(request):
         if form.is_valid():
             user = form.get_user()
             login(request, user)
+            messages.success(request, f"Welcome {user.username}!")
             return redirect('dashboard')
     else:
         form = CustomAuthenticationForm()
@@ -39,16 +40,90 @@ def dashboard(request):
         messages.warning(request, "Your account does not have a role assigned. Please contact an administrator.")
         return redirect('logout')
 
+    context = {
+        'user_role': request.user.role.name
+    }
+
+    # Common data for all roles
+    medicines = Medicine.objects.all()
+    context['total_medicines'] = medicines.count()
+    
+    if request.user.role.name == 'pharmacist':
+        # Get today's date
+        today = timezone.now().date()
+        
+        # Pharmacist specific data
+        if 'search' in request.GET:
+            query = request.GET.get('search')
+            medicines = medicines.filter(item_description__icontains=query)
+        
+        # Get today's sales
+        today_sales = Sale.objects.filter(
+            created_at__date=today
+        ).order_by('-created_at')
+        
+        # Calculate today's total sales amount
+        today_total = today_sales.aggregate(
+            total=Sum('total_price')
+        )['total'] or 0
+        
+        context.update({
+            'medicines': medicines,
+            'displayed_medicines': medicines.filter(quantity__gt=0).count(),
+            'search_query': request.GET.get('search', ''),
+            'today_sales': today_sales,
+            'today_total': today_total,
+            'today_sales_count': today_sales.count(),
+        })
+        return render(request, 'pharmacy/pharmacist_dashboard.html', context)
+    
+    # Admin and other roles
+    # Get complete medicines (using the is_complete property)
+    complete_medicines = []
+    incomplete_medicines = []
+    
+    for medicine in medicines:
+        if medicine.is_complete and medicine.quantity > 0 and not medicine.is_expired:
+            complete_medicines.append(medicine)
+        else:
+            incomplete_medicines.append(medicine)
+    
+    context.update({
+        'low_stock': Medicine.objects.filter(quantity__lte=F('displayed_quantity')).count(),
+        'total_sales': Sale.objects.aggregate(Sum('total_price'))['total_price__sum'] or 0,
+        'complete_medicines': complete_medicines,
+        'incomplete_medicines': incomplete_medicines,
+    })
+    return render(request, 'pharmacy/dashboard.html', context)
+
+@login_required
+def pharmacist_dashboard(request):
+    if request.user.role.name != 'pharmacist':
+        messages.error(request, "You do not have permission to access this page.")
+        return redirect('dashboard')
+
+    # Get medicines with low stock (less than 10)
+    low_stock = Medicine.objects.filter(quantity__lt=10).count()
+    
+    # Get expired medicines
+    today = timezone.now().date()
+    expired = Medicine.objects.filter(expiry_date__lt=today).count()
+    
+    # Get total medicines
     total_medicines = Medicine.objects.count()
-    low_stock = Medicine.objects.filter(quantity__lte=F('displayed_quantity')).count()
-    total_sales = Sale.objects.aggregate(Sum('total_price'))['total_price__sum'] or 0
+    
+    # Get recent sales
+    recent_sales = Sale.objects.order_by('-date')[:5]
     
     context = {
+        'user_role': 'pharmacist',
+        'low_stock_count': low_stock,
+        'expired_count': expired,
         'total_medicines': total_medicines,
-        'low_stock': low_stock,
-        'total_sales': total_sales,
+        'recent_sales': recent_sales,
     }
-    return render(request, 'pharmacy/dashboard.html', context)
+    
+    return render(request, 'pharmacy/pharmacist_dashboard.html', context)
 
 @login_required
 def user_list(request):
@@ -175,64 +250,86 @@ def register_user(request):
 
 @login_required
 def medicine_list(request):
-    if not request.user.role or request.user.role.name not in ['admin', 'pharmacist', 'inventory']:
-        return HttpResponseForbidden("Access Denied")
-        
-    medicines = Medicine.objects.all().order_by('code')
-    return render(request, 'pharmacy/medicine_list.html', {
-        'medicines': medicines,
-        'title': 'All Medicines'
-    })
+    medicines = Medicine.objects.all().order_by('item_description')
+    
+    # Get counts for the labels
+    total_medicines = medicines.count()
+    empty_descriptions = medicines.filter(Q(item_description__isnull=True) | Q(item_description='')).count()
+    
+    # Separate complete and incomplete medicines
+    complete_medicines = []
+    incomplete_medicines = []
+    
+    for medicine in medicines:
+        if medicine.is_complete and medicine.quantity > 0 and not medicine.is_expired:
+            complete_medicines.append(medicine)
+        else:
+            incomplete_medicines.append(medicine)
+    
+    context = {
+        'complete_medicines': complete_medicines,
+        'incomplete_medicines': incomplete_medicines,
+        'total_medicines': total_medicines,
+        'empty_descriptions': empty_descriptions,
+    }
+    
+    return render(request, 'pharmacy/medicine_list.html', context)
 
 @login_required
 def add_medicine(request):
     if not request.user.role or request.user.role.name not in ['admin', 'pharmacist']:
         return HttpResponseForbidden("Access Denied")
-        
+
     if request.method == 'POST':
-        form = MedicineForm(request.POST)
-        if form.is_valid():
-            medicine = form.save(commit=False)
-            
-            # Generate the next code
-            last_medicine = Medicine.objects.order_by('-code').first()
-            if last_medicine:
-                last_num = int(last_medicine.code.split('-')[1])
-                medicine.code = f'HM-{str(last_num + 1).zfill(3)}'
-            else:
-                medicine.code = 'HM-001'
-                
-            medicine.save()
+        try:
+            medicine = Medicine.objects.create(
+                code=request.POST.get('code'),
+                item_description=request.POST.get('item_description'),
+                unit=request.POST.get('unit'),
+                received_from=request.POST.get('received_from'),
+                quantity=request.POST.get('quantity'),
+                batch_number=request.POST.get('batch_number'),
+                expiry_date=request.POST.get('expiry_date'),
+                receiving_date=request.POST.get('receiving_date'),
+                balance=request.POST.get('balance'),
+                unit_price=request.POST.get('unit_price'),
+                selling_price=request.POST.get('selling_price')
+            )
             messages.success(request, 'Medicine added successfully!')
             return redirect('medicine_list')
-    else:
-        form = MedicineForm()
+        except Exception as e:
+            messages.error(request, f'Error adding medicine: {str(e)}')
     
-    return render(request, 'pharmacy/medicine_form.html', {
-        'form': form,
-        'title': 'Add Medicine'
-    })
+    return render(request, 'pharmacy/add_medicine.html')
 
 @login_required
 def edit_medicine(request, pk):
     if not request.user.role or request.user.role.name not in ['admin', 'pharmacist']:
         return HttpResponseForbidden("Access Denied")
-        
+    
     medicine = get_object_or_404(Medicine, pk=pk)
+    
     if request.method == 'POST':
-        form = MedicineForm(request.POST, instance=medicine)
-        if form.is_valid():
-            form.save()
+        try:
+            medicine.code = request.POST.get('code')
+            medicine.item_description = request.POST.get('item_description')
+            medicine.unit = request.POST.get('unit')
+            medicine.received_from = request.POST.get('received_from')
+            medicine.quantity = request.POST.get('quantity')
+            medicine.batch_number = request.POST.get('batch_number')
+            medicine.expiry_date = request.POST.get('expiry_date')
+            medicine.receiving_date = request.POST.get('receiving_date')
+            medicine.balance = request.POST.get('balance')
+            medicine.unit_price = request.POST.get('unit_price')
+            medicine.selling_price = request.POST.get('selling_price')
+            medicine.save()
+            
             messages.success(request, 'Medicine updated successfully!')
             return redirect('medicine_list')
-    else:
-        form = MedicineForm(instance=medicine)
+        except Exception as e:
+            messages.error(request, f'Error updating medicine: {str(e)}')
     
-    return render(request, 'pharmacy/medicine_form.html', {
-        'form': form,
-        'medicine': medicine,
-        'title': 'Edit Medicine'
-    })
+    return render(request, 'pharmacy/edit_medicine.html', {'medicine': medicine})
 
 @login_required
 def delete_medicine(request, pk):
@@ -240,18 +337,33 @@ def delete_medicine(request, pk):
         return HttpResponseForbidden("Access Denied")
     
     medicine = get_object_or_404(Medicine, pk=pk)
-    if request.method == 'POST':
-        medicine.delete()
-        messages.success(request, 'Medicine deleted successfully!')
-        return redirect('medicine_list')
     
-    return render(request, 'pharmacy/medicine_confirm_delete.html', {
-        'medicine': medicine
-    })
+    try:
+        medicine.delete()
+        messages.success(request, f'Medicine "{medicine.item_description}" has been deleted successfully.')
+    except Exception as e:
+        messages.error(request, f'Error deleting medicine: {str(e)}')
+    
+    return redirect('medicine_list')
+
+@login_required
+def delete_empty_medicines(request):
+    if not request.user.role or request.user.role.name not in ['admin', 'pharmacist']:
+        return HttpResponseForbidden("Access Denied")
+    
+    try:
+        empty_medicines = Medicine.objects.filter(Q(item_description__isnull=True) | Q(item_description=''))
+        count = empty_medicines.count()
+        empty_medicines.delete()
+        messages.success(request, f'Successfully deleted {count} medicines without descriptions.')
+    except Exception as e:
+        messages.error(request, f'Error deleting medicines: {str(e)}')
+    
+    return redirect('medicine_list')
 
 @login_required
 def sale_list(request):
-    if not request.user.role or request.user.role.name not in ['admin', 'cashier']:
+    if not request.user.role or request.user.role.name not in ['admin', 'cashier', 'pharmacist']:
         return HttpResponseForbidden("Access Denied")
         
     sales = Sale.objects.all().order_by('-created_at')
@@ -261,7 +373,7 @@ def sale_list(request):
 
 @login_required
 def add_sale(request):
-    if not request.user.role or request.user.role.name not in ['admin', 'cashier']:
+    if not request.user.role or request.user.role.name not in ['admin', 'cashier', 'pharmacist']:
         return HttpResponseForbidden("Access Denied")
         
     if request.method == 'POST':
@@ -290,7 +402,7 @@ def add_sale(request):
 
 @login_required
 def sale_detail(request, pk):
-    if not request.user.role or request.user.role.name not in ['admin', 'cashier']:
+    if not request.user.role or request.user.role.name not in ['admin', 'cashier', 'pharmacist']:
         return HttpResponseForbidden("Access Denied")
     
     sale = get_object_or_404(Sale, pk=pk)
@@ -300,7 +412,7 @@ def sale_detail(request, pk):
 
 @login_required
 def edit_sale(request, pk):
-    if not request.user.role or request.user.role.name not in ['admin', 'cashier']:
+    if not request.user.role or request.user.role.name not in ['admin', 'cashier', 'pharmacist']:
         return HttpResponseForbidden("Access Denied")
     
     sale = get_object_or_404(Sale, pk=pk)
@@ -320,7 +432,7 @@ def edit_sale(request, pk):
 
 @login_required
 def delete_sale(request, pk):
-    if not request.user.role or request.user.role.name not in ['admin', 'cashier']:
+    if not request.user.role or request.user.role.name not in ['admin', 'cashier', 'pharmacist']:
         return HttpResponseForbidden("Access Denied")
     
     sale = get_object_or_404(Sale, pk=pk)
@@ -340,7 +452,7 @@ def delete_sale(request, pk):
 
 @login_required
 def sales_report(request):
-    if not request.user.role or request.user.role.name not in ['admin', 'cashier']:
+    if not request.user.role or request.user.role.name not in ['admin', 'cashier', 'pharmacist']:
         return HttpResponseForbidden("Access Denied")
     
     # Get date range from request
@@ -381,75 +493,98 @@ def sales_report(request):
 
 @login_required
 def low_stock_medicines(request):
-    if not request.user.role or request.user.role.name not in ['admin', 'inventory']:
+    if not request.user.role or request.user.role.name not in ['admin', 'pharmacist']:
         return HttpResponseForbidden("Access Denied")
     
-    medicines = Medicine.objects.filter(quantity__lte=F('displayed_quantity'))
-    context = {'medicines': medicines, 'title': 'Low Stock Medicines'}
-    return render(request, 'pharmacy/medicine_list.html', context)
+    # Consider medicines with quantity less than 10 as low stock
+    low_stock = Medicine.objects.filter(quantity__lt=10).order_by('item_description')
+    
+    return render(request, 'pharmacy/medicine_list.html', {
+        'complete_medicines': low_stock,
+        'incomplete_medicines': [],
+        'total_medicines': low_stock.count(),
+        'empty_descriptions': 0,
+        'show_only_low_stock': True
+    })
 
 @login_required
 def expired_medicines(request):
-    if not request.user.role or request.user.role.name not in ['admin', 'inventory']:
+    if not request.user.role or request.user.role.name not in ['admin', 'pharmacist']:
         return HttpResponseForbidden("Access Denied")
     
-    medicines = Medicine.objects.filter(expiry_date__lt=timezone.now().date())
-    context = {'medicines': medicines, 'title': 'Expired Medicines'}
-    return render(request, 'pharmacy/medicine_list.html', context)
-
-@login_required
-def expiring_soon_medicines(request):
-    if not request.user.role or request.user.role.name not in ['admin', 'inventory']:
-        return HttpResponseForbidden("Access Denied")
+    today = timezone.now().date()
+    expired = Medicine.objects.filter(expiry_date__lt=today).order_by('expiry_date')
     
-    expiry_threshold = timezone.now().date() + timedelta(days=30)
-    medicines = Medicine.objects.filter(
-        expiry_date__gt=timezone.now().date(),
-        expiry_date__lte=expiry_threshold
-    )
-    context = {'medicines': medicines, 'title': 'Medicines Expiring Soon'}
-    return render(request, 'pharmacy/medicine_list.html', context)
-
-@login_required
-def medicine_inventory_list(request):
-    if not request.user.role or request.user.role.name not in ['admin', 'inventory']:
-        return HttpResponseForbidden("Access Denied")
-    
-    inventories = MedicineInventory.objects.all().order_by('-created_at')
-    return render(request, 'pharmacy/medicine_inventory_list.html', {
-        'inventories': inventories
+    return render(request, 'pharmacy/medicine_list.html', {
+        'complete_medicines': expired,
+        'incomplete_medicines': [],
+        'total_medicines': expired.count(),
+        'empty_descriptions': 0,
+        'show_only_expired': True
     })
 
 @login_required
-def add_medicine_inventory(request):
-    if not request.user.role or request.user.role.name not in ['admin', 'inventory']:
-        return HttpResponseForbidden("Access Denied")
+def search_medicine(request):
+    query = request.GET.get('q', '')
+    medicines = []
     
-    if request.method == 'POST':
-        form = MedicineInventoryForm(request.POST)
-        if form.is_valid():
-            inventory = form.save(commit=False)
-            inventory.created_by = request.user
-            inventory.save()
-            messages.success(request, 'Inventory record added successfully!')
-            return redirect('medicine_inventory_list')
-    else:
-        form = MedicineInventoryForm()
+    if query:
+        medicines = Medicine.objects.filter(
+            Q(code__icontains=query) |
+            Q(item_description__icontains=query)
+        ).order_by('item_description')
     
-    return render(request, 'pharmacy/medicine_inventory_form.html', {
-        'form': form,
-        'title': 'Add Inventory Record'
+    return JsonResponse({
+        'medicines': [{
+            'id': m.id,
+            'code': m.code,
+            'item_description': m.item_description,
+            'quantity': m.quantity,
+            'unit_price': float(m.unit_price),
+            'selling_price': float(m.selling_price)
+        } for m in medicines]
     })
 
 @login_required
-def medicine_inventory_detail(request, pk):
-    if not request.user.role or request.user.role.name not in ['admin', 'inventory']:
-        return HttpResponseForbidden("Access Denied")
-    
-    inventory = get_object_or_404(MedicineInventory, pk=pk)
-    return render(request, 'pharmacy/medicine_inventory_detail.html', {
-        'inventory': inventory
-    })
+@require_http_methods(["POST"])
+def record_sale(request):
+    try:
+        medicine_id = request.POST.get('medicine_id')
+        quantity = int(request.POST.get('quantity', 0))
+        payment_method = request.POST.get('payment_method', 'cash')
+        
+        medicine = Medicine.objects.get(id=medicine_id)
+        
+        if medicine.balance < quantity:
+            return JsonResponse({
+                'success': False,
+                'message': f'Insufficient stock. Available: {medicine.balance}'
+            }, status=400)
+        
+        sale = Sale.objects.create(
+            medicine=medicine,
+            quantity=quantity,
+            payment_method=payment_method,
+            created_by=request.user
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Sale recorded successfully',
+            'sale_id': sale.id,
+            'total_price': float(sale.total_price)
+        })
+        
+    except Medicine.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'message': 'Medicine not found'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': str(e)
+        }, status=500)
 
 @login_required
 def role_update(request, pk):

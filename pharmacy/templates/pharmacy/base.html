@@ -192,12 +192,6 @@
                     </a>
                 </li>
 
-                <li class="nav-item {% if '/inventory/' in request.path %}active{% endif %}">
-                    <a href="{% url 'medicine_inventory_list' %}" class="nav-link">
-                        <i class="fas fa-boxes"></i> Inventory
-                    </a>
-                </li>
-
                 <li class="nav-item {% if '/reports/' in request.path %}active{% endif %}">
                     <a href="{% url 'sales_report' %}" class="nav-link">
                         <i class="fas fa-chart-bar"></i> Reports
