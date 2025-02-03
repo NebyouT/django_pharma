@@ -2,12 +2,12 @@
 {% load crispy_forms_tags %}
 
 {% block content %}
-<div class="container">
+<div class="container mt-4">
     <div class="row justify-content-center">
         <div class="col-md-8">
             <div class="card">
-                <div class="card-header">
-                    <h3>{{ title|default:"Add New User" }}</h3>
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">{{ title|default:"Add New User" }}</h3>
                 </div>
                 <div class="card-body">
                     <form method="post" novalidate>
@@ -17,44 +17,24 @@
                                 {{ form.username|as_crispy_field }}
                                 {{ form.first_name|as_crispy_field }}
                                 {{ form.last_name|as_crispy_field }}
+                                {{ form.email|as_crispy_field }}
                             </div>
                             <div class="col-md-6">
-                                {{ form.email|as_crispy_field }}
                                 {{ form.role|as_crispy_field }}
+                                {{ form.phone_number|as_crispy_field }}
+                                {{ form.address|as_crispy_field }}
                             </div>
                         </div>
                         
-                        {% if form.instance.pk %}
-                        <div class="form-group mt-3">
-                            <div class="form-check">
-                                {{ form.is_active }}
-                                <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
-                                    Active
-                                </label>
-                            </div>
-                            <small class="form-text text-muted">{{ form.is_active.help_text }}</small>
-                        </div>
-                        {% endif %}
-
-                        {% if not form.instance.pk %}
-                        <div class="card mt-3">
-                            <div class="card-header">
-                                <h5>Password</h5>
-                            </div>
-                            <div class="card-body">
-                                {{ form.password1|as_crispy_field }}
-                                {{ form.password2|as_crispy_field }}
-                            </div>
-                        </div>
-                        {% endif %}
-
-                        <div class="d-grid gap-2 mt-4">
+                        <div class="mt-4">
                             <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save"></i> Save
+                                {% if form.instance.pk %}
+                                    Update User
+                                {% else %}
+                                    Create User
+                                {% endif %}
                             </button>
-                            <a href="{% url 'user_list' %}" class="btn btn-secondary">
-                                <i class="fas fa-times"></i> Cancel
-                            </a>
+                            <a href="{% url 'user_list' %}" class="btn btn-secondary">Cancel</a>
                         </div>
                     </form>
                 </div>

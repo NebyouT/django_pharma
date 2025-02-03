@@ -1,129 +1,128 @@
 {% extends 'pharmacy/base.html' %}
-{% load static %}
 
 {% block content %}
 <div class="container-fluid">
     <div class="row">
-        <div class="col-md-12">
-            <h1 class="h3 mb-4 text-gray-800">Dashboard</h1>
+        <div class="col">
+            <h2>Dashboard</h2>
+            <p>Welcome to the pharmacy management system dashboard.</p>
         </div>
     </div>
 
-    <div class="row">
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-primary shadow h-100 py-2">
+    <!-- Key Metrics -->
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white mb-4">
                 <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Medicines</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_medicines }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-pills fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
+                    <h5 class="card-title">Total Sales</h5>
+                    <h3>ETB {{ total_sales|floatformat:2 }}</h3>
                 </div>
             </div>
         </div>
-
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-warning shadow h-100 py-2">
+        <div class="col-md-4">
+            <div class="card bg-success text-white mb-4">
                 <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Low Stock Medicines</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ low_stock_count }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
+                    <h5 class="card-title">Total Medicines</h5>
+                    <h3>{{ total_medicines }}</h3>
                 </div>
             </div>
         </div>
-
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-danger shadow h-100 py-2">
+        <div class="col-md-4">
+            <div class="card bg-info text-white mb-4">
                 <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Expired Medicines</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ expired_count }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-calendar-times fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
+                    <h5 class="card-title">Total Users</h5>
+                    <h3>{{ total_users }}</h3>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Recent Sales -->
     <div class="row">
-        {% if user.role.name == 'admin' or user.role.name == 'pharmacist' %}
-        <div class="col-lg-6">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Quick Actions</h6>
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Recent Sales</h5>
                 </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <a href="{% url 'add_medicine' %}" class="btn btn-primary btn-block">
-                                <i class="fas fa-plus"></i> Add Medicine
-                            </a>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <a href="{% url 'low_stock_medicines' %}" class="btn btn-warning btn-block">
-                                <i class="fas fa-exclamation-triangle"></i> View Low Stock
-                            </a>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <a href="{% url 'expired_medicines' %}" class="btn btn-danger btn-block">
-                                <i class="fas fa-calendar-times"></i> View Expired
-                            </a>
-                        </div>
-                    </div>
-                </div>
+                <ul class="list-group list-group-flush">
+                    {% for sale in recent_sales %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>{{ sale.medicine.item_description }} - {{ sale.quantity }} units</span>
+                            <span>ETB {{ sale.total_price|floatformat:2 }}</span>
+                        </li>
+                    {% empty %}
+                        <li class="list-group-item">No recent sales</li>
+                    {% endfor %}
+                </ul>
             </div>
         </div>
-        {% endif %}
 
-        <div class="col-lg-6">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Recent Sales</h6>
+        <!-- Low Stock Alerts -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Low Stock Alerts</h5>
+                </div>
+                <ul class="list-group list-group-flush">
+                    {% for medicine in low_stock_medicines %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>{{ medicine.item_description }}</span>
+                            <span class="badge bg-warning text-dark">{{ medicine.quantity }} left</span>
+                        </li>
+                    {% empty %}
+                        <li class="list-group-item">All medicines are sufficiently stocked</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sales Chart -->
+    <div class="row">
+        <div class="col">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Sales Trends (Last 30 Days)</h5>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-bordered">
-                            <thead>
-                                <tr>
-                                    <th>Medicine</th>
-                                    <th>Quantity</th>
-                                    <th>Total Price</th>
-                                    <th>Date</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for sale in recent_sales %}
-                                <tr>
-                                    <td>{{ sale.medicine.item_description }}</td>
-                                    <td>{{ sale.quantity }}</td>
-                                    <td>{{ sale.total_price }}</td>
-                                    <td>{{ sale.created_at|date:"Y-m-d H:i" }}</td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="4" class="text-center">No recent sales</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+                    <canvas id="salesChart"></canvas>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Chart.js for Sales Chart -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const ctx = document.getElementById('salesChart').getContext('2d');
+    const salesChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [{% for data in sales_chart_data %}'{{ data.day|date:"Y-m-d" }}',{% endfor %}],
+            datasets: [{
+                label: 'Total Sales (ETB)',
+                data: [{% for data in sales_chart_data %}{{ data.total }},{% endfor %}],
+                borderColor: 'rgba(75, 192, 192, 1)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Date'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Sales (ETB)'
+                    }
+                }
+            }
+        }
+    });
+</script>
 {% endblock %}

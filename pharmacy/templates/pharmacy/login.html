@@ -1,5 +1,18 @@
 {% extends 'pharmacy/base_login.html' %}
 {% load crispy_forms_tags %}
+{% load static %}
+
+<style>
+    .login-container {
+        background-image: url('{% static "image/bg.png" %}');
+        background-size: cover;
+        background-position: center;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+</style>
 
 {% block content %}
 <div class="login-container">
@@ -9,7 +22,7 @@
                 <div class="card-header text-center">
                     <h3 class="mb-0">
                         <i class="fas fa-clinic-medical"></i>
-                        Pharmacy Management
+                       HM  Pharmacy 
                     </h3>
                 </div>
                 <div class="card-body p-4">

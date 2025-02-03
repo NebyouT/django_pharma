@@ -57,6 +57,53 @@
         </div>
     </div>
 
+    <div class="row">
+        <div class="col">
+            {% if sales_data %}
+                {% for day, sales in sales_data.items %}
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h5>{{ day|date:"F j, Y" }}</h5>
+                        </div>
+                        <div class="card-body">
+                            <h6>Cash Sales</h6>
+                            <ul class="list-group mb-3">
+                                {% for sale in sales.cash %}
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <span>{{ sale.medicine.item_description }} - {{ sale.quantity }} units</span>
+                                        <span>ETB {{ sale.total_price|floatformat:2 }}</span>
+                                    </li>
+                                {% empty %}
+                                    <li class="list-group-item">No cash sales</li>
+                                {% endfor %}
+                            </ul>
+
+                            <h6>Transfer Sales</h6>
+                            <ul class="list-group">
+                                {% for sale in sales.transfer %}
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <span>{{ sale.medicine.item_description }} - {{ sale.quantity }} units</span><br>
+                                            <small>Bank: {{ sale.bank_name }}</small><br>
+                                            <small>Sender: {{ sale.sender_name }}</small>
+                                        </div>
+                                        <span>ETB {{ sale.total_price|floatformat:2 }}</span>
+                                    </li>
+                                {% empty %}
+                                    <li class="list-group-item">No transfer sales</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="alert alert-info" role="alert">
+                    No sales data available.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
     <div class="card">
         <div class="card-body">
             <div class="table-responsive">

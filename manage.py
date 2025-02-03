@@ -2,6 +2,7 @@
 """Django's command-line utility for administrative tasks."""
 import os
 import sys
+import webbrowser
 
 
 def main():
@@ -19,4 +20,6 @@ def main():
 
 
 if __name__ == '__main__':
+    # Open the default web browser to the local server address
+    webbrowser.open('http://127.0.0.1:8000')
     main()

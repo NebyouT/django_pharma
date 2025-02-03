@@ -17,99 +17,94 @@
         <li class="nav-item" role="presentation">
             <button class="nav-link active" id="today-tab" data-bs-toggle="tab" data-bs-target="#today" type="button" role="tab">
                 Today's Sales
-                <span class="badge bg-primary">{{ today_total.count }}</span>
+                <span class="badge bg-primary">{{ today_sales.count }}</span>
             </button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="yesterday-tab" data-bs-toggle="tab" data-bs-target="#yesterday" type="button" role="tab">
                 Yesterday's Sales
-                <span class="badge bg-primary">{{ yesterday_total.count }}</span>
+                <span class="badge bg-primary">{{ yesterday_sales.count }}</span>
             </button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="weekly-tab" data-bs-toggle="tab" data-bs-target="#weekly" type="button" role="tab">
                 Weekly Sales
-                <span class="badge bg-primary">{{ weekly_total.count }}</span>
+                <span class="badge bg-primary">{{ weekly_sales.count }}</span>
             </button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="monthly-tab" data-bs-toggle="tab" data-bs-target="#monthly" type="button" role="tab">
                 Monthly Sales
-                <span class="badge bg-primary">{{ monthly_total.count }}</span>
+                <span class="badge bg-primary">{{ monthly_sales.count }}</span>
             </button>
         </li>
     </ul>
 
     <div class="tab-content" id="salesTabContent">
-        {% for period, sales, total in periods %}
-        <div class="tab-pane fade {% if forloop.first %}show active{% endif %}" 
-             id="{{ period }}" role="tabpanel" aria-labelledby="{{ period }}-tab">
-            
+        <div class="tab-pane fade show active" id="today" role="tabpanel" aria-labelledby="today-tab">
             <div class="card mb-3">
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-4">
-                            <h5>Total Sales: {{ total.count }}</h5>
-                        </div>
-                        <div class="col-md-4">
-                            <h5>Total Quantity: {{ total.total_quantity }}</h5>
-                        </div>
-                        <div class="col-md-4">
-                            <h5>Total Amount: ETB {{ total.total_amount|floatformat:2 }}</h5>
-                        </div>
-                    </div>
+                    <ul class="list-group list-group-flush">
+                        {% for sale in today_sales %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>{{ sale.medicine.item_description }} - {{ sale.quantity }} units</span>
+                                <span>ETB {{ sale.total_price|floatformat:2 }}</span>
+                            </li>
+                        {% empty %}
+                            <li class="list-group-item">No sales today</li>
+                        {% endfor %}
+                    </ul>
                 </div>
             </div>
-
-            <div class="table-responsive">
-                <table class="table table-striped table-hover">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Medicine ID</th>
-                            <th>Item Description</th>
-                            <th>Customer</th>
-                            <th>Quantity</th>
-                            <th>Amount (ETB)</th>
-                            <th>Seller</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for sale in sales %}
-                        <tr>
-                            <td>{{ sale.sale_date|date:"Y-m-d H:i" }}</td>
-                            <td>{{ sale.medicine.code }}</td>
-                            <td>{{ sale.medicine.item_description }}</td>
-                            <td>{{ sale.customer_name }}</td>
-                            <td>{{ sale.quantity }}</td>
-                            <td>{{ sale.total_amount|floatformat:2 }}</td>
-                            <td>{{ sale.seller.get_full_name }}</td>
-                            <td>
-                                <a href="{% url 'view_sale' sale.id %}" class="btn btn-sm btn-info">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                                {% if user.is_admin %}
-                                <a href="{% url 'edit_sale' sale.id %}" class="btn btn-sm btn-warning">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <a href="{% url 'delete_sale' sale.id %}" class="btn btn-sm btn-danger"
-                                   onclick="return confirm('Are you sure you want to delete this sale?')">
-                                    <i class="fas fa-trash"></i>
-                                </a>
-                                {% endif %}
-                            </td>
-                        </tr>
+        </div>
+        <div class="tab-pane fade" id="yesterday" role="tabpanel" aria-labelledby="yesterday-tab">
+            <div class="card mb-3">
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        {% for sale in yesterday_sales %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>{{ sale.medicine.item_description }} - {{ sale.quantity }} units</span>
+                                <span>ETB {{ sale.total_price|floatformat:2 }}</span>
+                            </li>
                         {% empty %}
-                        <tr>
-                            <td colspan="8" class="text-center">No sales found for this period.</td>
-                        </tr>
+                            <li class="list-group-item">No sales yesterday</li>
                         {% endfor %}
-                    </tbody>
-                </table>
+                    </ul>
+                </div>
             </div>
         </div>
-        {% endfor %}
+        <div class="tab-pane fade" id="weekly" role="tabpanel" aria-labelledby="weekly-tab">
+            <div class="card mb-3">
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        {% for sale in weekly_sales %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>{{ sale.medicine.item_description }} - {{ sale.quantity }} units</span>
+                                <span>ETB {{ sale.total_price|floatformat:2 }}</span>
+                            </li>
+                        {% empty %}
+                            <li class="list-group-item">No sales this week</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="tab-pane fade" id="monthly" role="tabpanel" aria-labelledby="monthly-tab">
+            <div class="card mb-3">
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        {% for sale in monthly_sales %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>{{ sale.medicine.item_description }} - {{ sale.quantity }} units</span>
+                                <span>ETB {{ sale.total_price|floatformat:2 }}</span>
+                            </li>
+                        {% empty %}
+                            <li class="list-group-item">No sales this month</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}

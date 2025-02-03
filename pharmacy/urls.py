@@ -26,13 +26,16 @@ urlpatterns = [
     
     # Medicine Management
     path('medicines/', views.medicine_list, name='medicine_list'),
+    path('expired-medicines/', views.expired_medicines, name='expired_medicines'),
+    path('low-stock-medicines/', views.low_stock_medicines, name='low_stock_medicines'),
     path('medicines/add/', views.add_medicine, name='add_medicine'),
     path('medicines/<int:pk>/edit/', views.edit_medicine, name='edit_medicine'),
     path('medicines/<int:pk>/delete/', views.delete_medicine, name='delete_medicine'),
     path('medicines/delete-empty/', views.delete_empty_medicines, name='delete_empty_medicines'),
-    path('medicines/low-stock/', views.low_stock_medicines, name='low_stock_medicines'),
-    path('medicines/expired/', views.expired_medicines, name='expired_medicines'),
     path('medicines/search/', views.search_medicine, name='search_medicine'),
+    
+    # API
+    path('api/search-medicines/', views.search_medicines, name='search_medicines'),
     
     # Sales Management
     path('sales/', views.sale_list, name='sale_list'),

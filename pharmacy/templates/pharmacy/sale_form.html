@@ -1,49 +1,366 @@
 {% extends 'pharmacy/base.html' %}
 {% load crispy_forms_tags %}
 
-{% block content %}
-<div class="container-fluid">
-    <div class="row mb-3">
-        <div class="col">
-            <h2>{{ title }}</h2>
-        </div>
-    </div>
+{% block extra_css %}
+<style>
+    .medicine-row {
+        cursor: pointer;
+    }
+    .medicine-row:hover {
+        background-color: #f8f9fa;
+    }
+    .medicine-row.selected {
+        background-color: #e2e6ea;
+    }
+    .low-stock {
+        color: #ffc107;
+    }
+    .expired {
+        color: #dc3545;
+    }
+    .medicine-search {
+        border-radius: 20px;
+        padding-left: 20px;
+        margin-bottom: 20px;
+    }
+    .table-container {
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+    }
+    .table thead th {
+        background-color: #f8f9fa;
+    }
+    .select-btn {
+        min-width: 80px;
+    }
+    .selected-medicine-info {
+        background-color: #f8f9fa;
+        padding: 10px;
+        border-radius: 4px;
+        margin-top: 10px;
+        border: 1px solid #dee2e6;
+    }
+    .selected-medicine-info.hidden {
+        display: none;
+    }
+    .pagination {
+        margin-top: 10px;
+        margin-bottom: 0;
+    }
+    .page-info {
+        margin-top: 10px;
+        text-align: right;
+        color: #6c757d;
+    }
+</style>
+{% endblock %}
 
-    <div class="row">
-        <div class="col-md-8">
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-12">
             <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">{{ title }}</h3>
+                </div>
                 <div class="card-body">
                     <form method="post" novalidate>
                         {% csrf_token %}
-                        {{ form|crispy }}
-                        <div class="mt-3">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save"></i> Save Sale
-                            </button>
-                            <a href="{% url 'sale_list' %}" class="btn btn-secondary">
-                                <i class="fas fa-times"></i> Cancel
-                            </a>
+                        
+                        <!-- Medicine Search and Table -->
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <input type="text" id="medicineSearch" class="form-control medicine-search w-50" placeholder="Search medicines by code or description...">
+                                <div class="page-info">
+                                    Showing <span id="startIndex">1</span>-<span id="endIndex">5</span> of <span id="totalItems">0</span> items
+                                </div>
+                            </div>
+                            
+                            <div class="table-container">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Code</th>
+                                            <th>Description</th>
+                                            <th>Unit</th>
+                                            <th>Stock</th>
+                                            <th>Price</th>
+                                            <th>Expiry</th>
+                                            <th>Status</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="medicineTableBody">
+                                        {% for medicine in medicines %}
+                                        <tr class="medicine-row" data-id="{{ medicine.id }}" data-price="{{ medicine.selling_price }}">
+                                            <td>{{ medicine.code }}</td>
+                                            <td>{{ medicine.item_description }}</td>
+                                            <td>{{ medicine.unit }}</td>
+                                            <td class="{% if medicine.is_low_stock %}low-stock{% endif %}">
+                                                {{ medicine.quantity }}
+                                            </td>
+                                            <td>{{ medicine.selling_price }} ETB</td>
+                                            <td class="{% if medicine.is_expired %}expired{% endif %}">
+                                                {{ medicine.expiry_date }}
+                                            </td>
+                                            <td>
+                                                {% if medicine.is_expired %}
+                                                    <span class="badge bg-danger">Expired</span>
+                                                {% elif medicine.is_low_stock %}
+                                                    <span class="badge bg-warning text-dark">Low Stock</span>
+                                                {% else %}
+                                                    <span class="badge bg-success">Available</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <button type="button" class="btn btn-sm btn-primary select-btn">Select</button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <nav aria-label="Medicine table navigation">
+                                <ul class="pagination justify-content-center">
+                                    <li class="page-item">
+                                        <button class="page-link" id="prevPage" type="button">&laquo; Previous</button>
+                                    </li>
+                                    <li class="page-item">
+                                        <button class="page-link" id="nextPage" type="button">Next &raquo;</button>
+                                    </li>
+                                </ul>
+                            </nav>
+
+                            <!-- Selected Medicine Info -->
+                            <div id="selectedMedicineInfo" class="selected-medicine-info hidden">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <strong>Selected Medicine:</strong> <span id="selectedMedicineName"></span>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <strong>Stock:</strong> <span id="selectedMedicineStock"></span>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <strong>Price:</strong> <span id="selectedMedicinePrice"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Hidden Medicine Input -->
+                        <input type="hidden" name="medicine" id="selectedMedicine">
+                        
+                        <!-- Rest of the form remains the same -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                {{ form.quantity|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">Total Amount</label>
+                                    <input type="text" id="total_amount" class="form-control" readonly>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Payment Method -->
+                        <div class="card mb-3">
+                            <div class="card-header bg-info text-white">
+                                <h5 class="mb-0">Payment Method</h5>
+                            </div>
+                            <div class="card-body">
+                                {{ form.payment_method|as_crispy_field }}
+
+                                <!-- Bank Transfer Fields -->
+                                <div id="bank-fields" class="payment-fields" style="display: none;">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            {{ form.bank_name|as_crispy_field }}
+                                        </div>
+                                        <div class="col-md-6">
+                                            {{ form.sender_name|as_crispy_field }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-end">
+                            <a href="{% url 'sale_list' %}" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">Record Sale</button>
                         </div>
                     </form>
                 </div>
             </div>
         </div>
-
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-header">
-                    <h5>Sale Information</h5>
-                </div>
-                <div class="card-body">
-                    <ul class="list-unstyled">
-                        <li><i class="fas fa-info-circle text-info"></i> Enter customer name</li>
-                        <li><i class="fas fa-info-circle text-info"></i> Select medicine from the list</li>
-                        <li><i class="fas fa-info-circle text-info"></i> Enter quantity</li>
-                        <li><i class="fas fa-info-circle text-warning"></i> Total amount will be calculated automatically</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    const medicineSearch = document.getElementById('medicineSearch');
+    const medicineTableBody = document.getElementById('medicineTableBody');
+    const selectedMedicineInput = document.getElementById('selectedMedicine');
+    const quantityInput = document.querySelector('input[name="quantity"]');
+    const paymentMethodInputs = document.querySelectorAll('input[name="payment_method"]');
+    const bankFields = document.getElementById('bank-fields');
+    const totalAmountInput = document.getElementById('total_amount');
+    const selectedMedicineInfo = document.getElementById('selectedMedicineInfo');
+    const selectedMedicineName = document.getElementById('selectedMedicineName');
+    const selectedMedicineStock = document.getElementById('selectedMedicineStock');
+    const selectedMedicinePrice = document.getElementById('selectedMedicinePrice');
+    const prevPageBtn = document.getElementById('prevPage');
+    const nextPageBtn = document.getElementById('nextPage');
+    const startIndexSpan = document.getElementById('startIndex');
+    const endIndexSpan = document.getElementById('endIndex');
+    const totalItemsSpan = document.getElementById('totalItems');
+
+    let selectedRow = null;
+    let currentPage = 1;
+    const rowsPerPage = 5;
+    let filteredRows = Array.from(medicineTableBody.getElementsByTagName('tr'));
+    
+    // Update pagination info
+    function updatePaginationInfo() {
+        const startIndex = (currentPage - 1) * rowsPerPage + 1;
+        const endIndex = Math.min(currentPage * rowsPerPage, filteredRows.length);
+        const totalItems = filteredRows.length;
+
+        startIndexSpan.textContent = startIndex;
+        endIndexSpan.textContent = endIndex;
+        totalItemsSpan.textContent = totalItems;
+
+        prevPageBtn.disabled = currentPage === 1;
+        nextPageBtn.disabled = endIndex >= totalItems;
+    }
+
+    // Show current page
+    function showCurrentPage() {
+        const start = (currentPage - 1) * rowsPerPage;
+        const end = start + rowsPerPage;
+
+        Array.from(medicineTableBody.getElementsByTagName('tr')).forEach(row => {
+            row.style.display = 'none';
+        });
+
+        filteredRows.slice(start, end).forEach(row => {
+            row.style.display = '';
+        });
+
+        updatePaginationInfo();
+    }
+
+    // Function to handle medicine selection
+    function selectMedicine(row) {
+        if (selectedRow) {
+            selectedRow.classList.remove('selected');
+        }
+        row.classList.add('selected');
+        selectedRow = row;
+        selectedMedicineInput.value = row.dataset.id;
+
+        // Update selected medicine info
+        selectedMedicineName.textContent = row.children[1].textContent;
+        selectedMedicineStock.textContent = row.children[3].textContent;
+        selectedMedicinePrice.textContent = row.children[4].textContent;
+        selectedMedicineInfo.classList.remove('hidden');
+
+        updateTotal();
+    }
+
+    // Function to calculate and display total
+    function updateTotal() {
+        const quantity = parseInt(quantityInput.value) || 0;
+        
+        if (selectedRow && quantity > 0) {
+            const price = parseFloat(selectedRow.dataset.price) || 0;
+            const total = price * quantity;
+            totalAmountInput.value = total.toFixed(2) + ' ETB';
+        } else {
+            totalAmountInput.value = '0.00 ETB';
+        }
+    }
+
+    // Function to filter medicines
+    function filterMedicines(query) {
+        const searchTerm = query.toLowerCase();
+        
+        filteredRows = Array.from(medicineTableBody.getElementsByTagName('tr')).filter(row => {
+            const code = row.children[0].textContent.toLowerCase();
+            const description = row.children[1].textContent.toLowerCase();
+            return code.includes(searchTerm) || description.includes(searchTerm);
+        });
+
+        currentPage = 1;
+        showCurrentPage();
+    }
+
+    // Function to toggle payment fields
+    function togglePaymentFields() {
+        const selectedMethod = document.querySelector('input[name="payment_method"]:checked').value;
+        bankFields.style.display = selectedMethod === 'bank' ? 'block' : 'none';
+    }
+
+    // Add event listeners
+    medicineSearch.addEventListener('input', (e) => filterMedicines(e.target.value));
+    
+    // Add click handlers for select buttons
+    document.querySelectorAll('.select-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const row = e.target.closest('tr');
+            selectMedicine(row);
+        });
+    });
+
+    // Pagination event listeners
+    prevPageBtn.addEventListener('click', () => {
+        if (currentPage > 1) {
+            currentPage--;
+            showCurrentPage();
+        }
+    });
+
+    nextPageBtn.addEventListener('click', () => {
+        const maxPage = Math.ceil(filteredRows.length / rowsPerPage);
+        if (currentPage < maxPage) {
+            currentPage++;
+            showCurrentPage();
+        }
+    });
+
+    quantityInput.addEventListener('input', updateTotal);
+    
+    paymentMethodInputs.forEach(input => {
+        input.addEventListener('change', togglePaymentFields);
+    });
+
+    // Form validation
+    form.addEventListener('submit', (e) => {
+        if (!selectedMedicineInput.value) {
+            e.preventDefault();
+            alert('Please select a medicine from the table.');
+            return;
+        }
+
+        if (selectedRow) {
+            const isExpired = selectedRow.querySelector('.expired');
+            if (isExpired) {
+                if (!confirm('This medicine is expired. Are you sure you want to proceed with the sale?')) {
+                    e.preventDefault();
+                    return;
+                }
+            }
+        }
+    });
+
+    // Initialize
+    togglePaymentFields();
+    showCurrentPage();
+});
+</script>
 {% endblock %}

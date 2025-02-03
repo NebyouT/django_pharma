@@ -51,7 +51,7 @@
                             <div class="h5 mb-0 font-weight-bold text-gray-800">{{ expired_count }}</div>
                         </div>
                         <div class="col-auto">
-                            <i class="fas fa-calendar-times fa-2x text-gray-300"></i>
+                            <i class="fas fa-exclamation-circle fa-2x text-gray-300"></i>
                         </div>
                     </div>
                 </div>
@@ -66,65 +66,18 @@
                     <h6 class="m-0 font-weight-bold text-primary">Quick Actions</h6>
                 </div>
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <a href="{% url 'add_medicine' %}" class="btn btn-primary btn-block">
-                                <i class="fas fa-plus"></i> Add Medicine
-                            </a>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <a href="{% url 'low_stock_medicines' %}" class="btn btn-warning btn-block">
-                                <i class="fas fa-exclamation-triangle"></i> View Low Stock
-                            </a>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <a href="{% url 'expired_medicines' %}" class="btn btn-danger btn-block">
-                                <i class="fas fa-calendar-times"></i> View Expired
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-6">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Medicine Status</h6>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-bordered">
-                            <thead>
-                                <tr>
-                                    <th>Medicine</th>
-                                    <th>Quantity</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for medicine in recent_medicines %}
-                                <tr>
-                                    <td>{{ medicine.item_description }}</td>
-                                    <td>{{ medicine.quantity }}</td>
-                                    <td>
-                                        {% if medicine.is_expired %}
-                                            <span class="badge badge-danger">Expired</span>
-                                        {% elif medicine.is_low_stock %}
-                                            <span class="badge badge-warning">Low Stock</span>
-                                        {% else %}
-                                            <span class="badge badge-success">In Stock</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="3" class="text-center">No medicines found</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+                    <ul class="list-group list-group-flush">
+                        {% if can_sell %}
+                        <li class="list-group-item">
+                            <a href="{% url 'sale_list' %}" class="btn btn-primary btn-block">Sell Medicines</a>
+                        </li>
+                        {% endif %}
+                        {% if can_request_drugs %}
+                        <li class="list-group-item">
+                            <a href="#" class="btn btn-secondary btn-block">Request New Drugs</a>
+                        </li>
+                        {% endif %}
+                    </ul>
                 </div>
             </div>
         </div>
